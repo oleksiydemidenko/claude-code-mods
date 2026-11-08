@@ -1,0 +1,36 @@
+{
+  "name": "cache-keeper",
+  "version": "1.0.0",
+  "description": "Keeps your prompt cache warm while you are away, shown as a tiny kitchen where a chef feeds one guest per hour; warns once before a message into a cold session.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "The language of the mod's words. auto: the language you write in.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "en",
+        "ru",
+        "uk",
+        "be",
+        "pl",
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "ja",
+        "zh",
+        "ko"
+      ]
+    }
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Oleksiy"
+  },
+  "homepage": "https://github.com/oleksiydemidenko/claude-code-mods",
+  "repository": "https://github.com/oleksiydemidenko/claude-code-mods"
+}

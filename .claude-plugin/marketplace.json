@@ -1,0 +1,19 @@
+{
+  "name": "claude-code-mods",
+  "owner": { "name": "Oleksiy" },
+  "metadata": {
+    "description": "Small mods for Claude Code: a kitchen that keeps your prompt cache warm, and a line that shows where the answer starts."
+  },
+  "plugins": [
+    {
+      "name": "cache-keeper",
+      "source": "./cache-keeper",
+      "description": "Keeps your prompt cache warm while you are away, shown as a tiny kitchen where a chef feeds one guest per hour."
+    },
+    {
+      "name": "answer-divider",
+      "source": "./answer-divider",
+      "description": "Marks where Claude's final answer starts, dims the interim text, and shows how long the turn took."
+    }
+  ]
+}

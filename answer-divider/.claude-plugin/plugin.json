@@ -1,0 +1,36 @@
+{
+  "name": "answer-divider",
+  "version": "1.0.0",
+  "description": "Marks where Claude's final answer starts with a thin line, dims the interim text, and shows how long the turn took.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "The language of the mod's words. auto: the language you write in.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "en",
+        "ru",
+        "uk",
+        "be",
+        "pl",
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "ja",
+        "zh",
+        "ko"
+      ]
+    }
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Oleksiy"
+  },
+  "homepage": "https://github.com/oleksiydemidenko/claude-code-mods",
+  "repository": "https://github.com/oleksiydemidenko/claude-code-mods"
+}
