@@ -6,7 +6,7 @@ Two small mods for [Claude Code](https://claude.com/claude-code): one keeps your
 
 ## cache-keeper · a tiny kitchen that keeps your cache warm
 
-<img src="docs/cache-keeper.svg?v=1.0.4" alt="A band above the prompt: 'Cooking… 5 h 35 min left', a pot on a fire, a chef carrying a bowl, and a queue of guests, some already eating" width="720">
+<img src="docs/cache-keeper-1.0.4.svg" alt="A band above the prompt: 'Cooking… 5 h 35 min left', a pot on a fire, a chef carrying a bowl, and a queue of guests, some already eating" width="720">
 
 Claude Code caches your conversation so each new message does not pay to re-read it. The cache cools down after a while with no requests (cache-keeper assumes one hour). Come back after that, and your next message reads the whole context again at full price.
 
@@ -16,17 +16,17 @@ Claude Code caches your conversation so each new message does not pay to re-read
 
 **One guest arrives for every hour** you asked for, and they queue at the right. While nothing happens, the chef stirs the pot and the guests float in line.
 
-<img src="docs/kitchen-idle.svg?v=1.0.4" alt="The chef stirs the pot; three guests eat at tables, three more float in the queue" width="720">
+<img src="docs/kitchen-idle-1.0.4.svg" alt="The chef stirs the pot; three guests eat at tables, three more float in the queue" width="720">
 
 **Each warm-up, the chef carries a bowl** across to the queue, and the next guest sits down to eat (the picture at the top).
 
 **If an hour passes with no warm-up**, the last guest gives up and leaves. No warm-up means you were busy and the cache was warm anyway.
 
-<img src="docs/kitchen-leave.svg?v=1.0.4" alt="The last guest in the queue walks off past the right edge, and the queue closes up" width="720">
+<img src="docs/kitchen-leave-1.0.4.svg" alt="The last guest in the queue walks off past the right edge, and the queue closes up" width="720">
 
 **When you send a message**, the chef floats up to the ladle and tastes the soup himself.
 
-<img src="docs/kitchen-taste.svg?v=1.0.4" alt="The chef floats up to the ladle and tastes the soup; a heart rises beside him" width="720">
+<img src="docs/kitchen-taste-1.0.4.svg" alt="The chef floats up to the ladle and tastes the soup; a heart rises beside him" width="720">
 
 So a hungry queue means you worked through the hours, and a full table means the session sat idle while the mod kept it warm.
 
@@ -46,7 +46,7 @@ There is also a **guard**. The first message into a large session whose cache ha
 
 ## answer-divider · see where the answer starts
 
-<img src="docs/answer-divider.svg?v=1.0.4" alt="A turn in the chat: two dim lines of interim text, a thin wavy line with the word ANSWER, the answer, and 'Response time: 1 min 42 s'" width="720">
+<img src="docs/answer-divider-1.0.4.svg" alt="A turn in the chat: two dim lines of interim text, a thin wavy line with the word ANSWER, the answer, and 'Response time: 1 min 42 s'" width="720">
 
 Claude often thinks out loud between tool calls, and in a long turn the final answer gets lost among it. answer-divider:
 
