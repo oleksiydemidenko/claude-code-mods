@@ -111,7 +111,7 @@ const FOOT_HEIGHT = 20
 
 /** "Response time: …" as a picture, so it turns gray on the light theme too. */
 function footSvg(text: string): { source: string; width: number } {
-  const width = Math.ceil(textWidth(text, 14) + 6)
+  const width = Math.ceil(textWidth(text, 14) + 2)
   const source =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${FOOT_HEIGHT}" viewBox="0 0 ${width} ${FOOT_HEIGHT}">` +
     INK +

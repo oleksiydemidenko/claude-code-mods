@@ -158,13 +158,13 @@ test('a warm-up feeds the next guest; a message of the person lets the chef tast
   // Nothing was ever said: the first minute's tick warms at once.
   await clock.advance(MIN)
   expect(await sceneSource(ui)).toContain('class="carry"')
-  await clock.advance(7000)
+  await clock.advance(11000)
   expect(await sceneAlt(ui)).toBe('Кухня: накормлено 1 из 2')
   expect(await sceneSource(ui)).not.toContain('class="carry"')
 
   await $.prompt.submit({ text: 'вопрос' })
   expect(await sceneSource(ui)).toContain('class="taster"')
-  await clock.advance(3600)
+  await clock.advance(5600)
   expect(await sceneSource(ui)).not.toContain('class="taster"')
   expect(await sceneAlt(ui)).toBe('Кухня: накормлено 1 из 2')
 
@@ -186,10 +186,10 @@ test('/cache-warm демо feeds every guest in turn, then ends', RU, async ($, 
 
   await clock.advance(1500)
   expect(await sceneSource(ui)).toContain('class="carry"')
-  await clock.advance(7000)
+  await clock.advance(11000)
   expect(await sceneAlt(ui)).toBe('Кухня: накормлено 1 из 2')
 
-  for (let i = 0; i < 4; i++) await clock.advance(9000)
+  for (let i = 0; i < 4; i++) await clock.advance(12000)
   expect(toasts).toContain('Демо окончено: накормлено 2 из 2.')
   expect(await sceneAlt(ui)).toBeUndefined()
 
@@ -234,7 +234,7 @@ test('the demo lets every third guest leave hungry', RU, async ($, on) => {
   await $.command.run({ command: 'cache-warm', args: 'демо 3' })
   const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
 
-  for (let i = 0; i < 6; i++) await clock.advance(9000)
+  for (let i = 0; i < 6; i++) await clock.advance(12000)
   expect(toasts).toContain('Демо окончено: накормлено 2 из 3, ушли голодными 1.')
   await ui.unmount()
 })

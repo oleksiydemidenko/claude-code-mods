@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { CacheWarm, Demo, Display, Note, Run } from '../types'
+import type { CacheWarm, Demo, Display, Note, Run, Stage } from '../types'
 import { detectLang, fromLocale, hm, isLang, thousands } from './i18n'
 import type { Lang } from './i18n'
 import { STRINGS } from './strings'
@@ -27,6 +27,7 @@ const lastActivity = atom({ plugin: 'cache-keeper', key: 'lastActivity' } as con
 const warm = atom({ plugin: 'cache-keeper', key: 'warm' } as const, null as CacheWarm | null)
 const heldAt = atom({ plugin: 'cache-keeper', key: 'heldAt' } as const, 0)
 const run = atom({ plugin: 'cache-keeper', key: 'run' } as const, null as Run | null)
+const stage = atom({ plugin: 'cache-keeper', key: 'stage' } as const, null as Stage | null)
 const demo = atom({ plugin: 'cache-keeper', key: 'demo' } as const, null as Demo | null)
 const clockAt = atom({ plugin: 'cache-keeper', key: 'clockAt' } as const, 0)
 const display = atom({ plugin: 'cache-keeper', key: 'display' } as const, 'band' as Display)
@@ -51,7 +52,7 @@ const STORE_MAX_SESSIONS = 100
 const MAX_GUESTS = 24
 const DEMO_GUESTS = 6
 /** A demo step: longer than a serving run, so they never overlap. */
-const DEMO_EVERY = 9000
+const DEMO_EVERY = 12000
 
 const LANG_KEY = 'lang'
 
@@ -185,6 +186,7 @@ async function showStatus($: Dollar): Promise<void> {
 
 async function stopWarming($: Dollar, why: string): Promise<void> {
   await update($, warm, () => null)
+  await restage($)
   $.ui.status(undefined)
   $.ui.toast(why)
 }
@@ -294,6 +296,7 @@ async function startRun($: Dollar, kind: Run['kind']): Promise<void> {
   runSeq += 1
   const id = runSeq
   await update($, run, () => ({ kind, id }))
+  await restage($)
   $.clock.after(kind === 'serving' ? SERVE_MS : kind === 'taste' ? TASTE_MS : LEAVE_MS, () => {
     finishRun($, id).catch(() => undefined)
   })
@@ -320,6 +323,26 @@ async function finishRun($: Dollar, id: number): Promise<void> {
     }
   }
   await update($, run, () => null)
+  await restage($)
+}
+
+/**
+ * Writes what the kitchen picture shows, in one go and only when it changed:
+ * the kitchen's state lives in several values (the run, warming, the demo),
+ * and a picture drawn between their writes would restart for a moment.
+ */
+async function restage($: Dollar): Promise<void> {
+  const f = await feast($)
+  if (f === null) {
+    if ((await read($, stage)) !== null) await update($, stage, () => null)
+    return
+  }
+  const r = await read($, run)
+  const mode: Stage['mode'] = r === null ? 'idle' : r.kind
+  const cur = await read($, stage)
+  if (cur !== null && cur.mode === mode && cur.guests === f.guests && cur.served === f.served) return
+  const at = await $.clock.now()
+  await update($, stage, () => ({ mode, guests: f.guests, served: f.served, at }))
 }
 
 /** A warm-up went out: the chef feeds the next guest, or tastes it himself once all are fed. */
@@ -337,6 +360,7 @@ function stopDemoTimer(): void {
 async function endDemo($: Dollar, why: string): Promise<void> {
   await update($, demo, () => null)
   await update($, run, () => null)
+  await restage($)
   $.ui.toast(why)
   // Last: this may run inside the demo's own timer.
   stopDemoTimer()
@@ -438,6 +462,7 @@ export const register: Register = (on, options) => {
     // A reload leaves no run playing and no demo timer: start clean.
     await update($, run, () => null)
     await update($, demo, () => null)
+    await restage($)
     const startedAt = await $.clock.now()
     await update($, clockAt, () => startedAt)
 
@@ -472,9 +497,10 @@ export const register: Register = (on, options) => {
 
     const { Box, Svg } = $.ui.resolve(e)
     const label = labelSvg(S().title, it.sub)
-    const scene = kitchenSvg({ guests: it.guests, served: it.served, mode: it.mode })
+    const st = (await read($, stage)) ?? { mode: it.mode, guests: it.guests, served: it.served, at: 0 }
+    const scene = kitchenSvg({ guests: st.guests, served: st.served, mode: st.mode, epoch: st.at })
     return (
-      <Box flexDirection="row" alignItems="center" gap="md">
+      <Box flexDirection="row" alignItems="center" gap="xs">
         <Svg source={label.source} alt={`${S().title}, ${it.sub}`} width={label.width} height={label.height} />
         <Box flexGrow={1} minWidth={0}>
           <Svg
@@ -526,6 +552,7 @@ export const register: Register = (on, options) => {
       stopDemoTimer()
       await update($, run, () => null)
       await update($, demo, () => ({ guests: n, served: 0, left: 0, step: 0 }))
+      await restage($)
       stopDemo = $.clock.every(DEMO_EVERY, () => {
         demoStep($).catch(() => undefined)
       })
@@ -538,6 +565,7 @@ export const register: Register = (on, options) => {
     if (['off', 'stop', 'выкл', 'стоп', 'выключить', 'вимкнути'].includes(first)) {
       const was = await read($, warm)
       await update($, warm, () => null)
+      await restage($)
       $.ui.status(undefined)
       return { text: was === null ? S().alreadyOff : S().turnedOff }
     }
@@ -561,6 +589,7 @@ export const register: Register = (on, options) => {
       served: 0,
       left: 0,
     }))
+    await restage($)
     retryAt = 0
     await update($, clockAt, () => now)
     await showStatus($)

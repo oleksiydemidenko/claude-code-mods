@@ -1,6 +1,6 @@
 {
   "name": "cache-keeper",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Keeps your prompt cache warm while you are away, shown as a tiny kitchen where a chef feeds one guest per hour; warns once before a message into a cold session.",
   "types": "./types/index.d.ts",
   "userConfig": {

@@ -25,6 +25,12 @@ export type Note =
 /** A one-off run the kitchen is playing: feeding the next guest, or the chef tasting. */
 export type Run = { kind: 'serving' | 'taste' | 'leaving'; id: number }
 
+/**
+ * What the kitchen picture shows, written in one go whenever it changes, so
+ * the picture changes once; `at` is when this scene began.
+ */
+export type Stage = { mode: 'idle' | 'serving' | 'taste' | 'leaving'; guests: number; served: number; at: number }
+
 /** /cache-warm демо: a pretend shift; every third step a guest leaves unfed. */
 export type Demo = { guests: number; served: number; left: number; step: number }
 
@@ -42,6 +48,8 @@ declare module 'claude-code' {
       heldAt: number
       /** The run the kitchen is playing, or null. */
       run: Run | null
+      /** What the kitchen picture shows, or null while there is no kitchen. */
+      stage: Stage | null
       /** The demo shift, or null. */
       demo: Demo | null
       /** The clock at the last minute tick (ms), so the band's time left redraws. */
