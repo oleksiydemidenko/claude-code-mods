@@ -12,6 +12,15 @@ Draws a thin line with the word "ANSWER" (in your language) above Claude's final
 - It sends nothing anywhere: no requests to the model, no network requests, no analytics.
 - To know which text is the final answer, it keeps the answers of the current session in memory. After a restart it reads them again from the session's own transcript.
 
+## What it hooks
+
+The mod is one hooks module, `hooks/register.tsx`. Each hook, and what it does:
+
+- `session.start`: registers `/answer-line`, reads the chosen line and the stored answer times back, and reads the session's own transcript to find past answers.
+- `command.run`, only for its own `/answer-line` command: switches the line between a wave and triangles. It does not see or change any other command.
+- `turn.complete`: notes the final answer of the turn and how long the turn took.
+- `ui.render` on Claude's messages: draws the line above the final answer and the time under it, and dims the interim text. The message text itself is never changed.
+
 ## Privacy
 
 It keeps in Claude Code's local plugin storage on your computer:

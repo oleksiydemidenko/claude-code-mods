@@ -26,6 +26,16 @@ Keeps your Claude Code session's prompt cache warm while you are away, and shows
 
 **The guard** sends nothing. In every session, the first message into a large session (over 30,000 tokens of context) whose cache has gone cold is held back once with a warning and put back in the input box; press Enter again to send it.
 
+## What it hooks
+
+The mod is one hooks module, `hooks/register.tsx`. Each hook, and what it does:
+
+- `session.start`: registers `/cache-warm` and reads the mod's settings back from local storage.
+- `command.run`, only for its own `/cache-warm` command: switches warming on and off, shows the status, changes the display, plays the demo. It does not see or change any other command.
+- `prompt.submit`: reads the message you send, before it goes to the model, to make the chef taste the soup, to detect your language (with the option on `auto`), and for the guard. Only when the guard holds a message back does it stop it, once, and put the same text back in your input box. Otherwise the message goes on unchanged.
+- `turn.start` and `turn.complete`: note when the session is busy and when it last talked to the model.
+- `ui.render` on the band above the prompt: draws the kitchen.
+
 ## Privacy
 
 - No servers of its own, no analytics, no network requests: the warm-up goes through Claude Code itself, to the same model your session uses.

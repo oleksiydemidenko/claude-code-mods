@@ -1,6 +1,6 @@
 {
   "name": "cache-keeper",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Keeps your prompt cache warm while you are away: once you switch it on, it sends one small request per idle hour, which counts toward your usage. Shown as a tiny kitchen; warns once before a message into a cold session.",
   "types": "./types/index.d.ts",
   "userConfig": {

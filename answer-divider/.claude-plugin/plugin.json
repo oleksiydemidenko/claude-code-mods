@@ -1,6 +1,6 @@
 {
   "name": "answer-divider",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Marks where Claude's final answer starts with a thin line, dims the interim text, and shows how long the turn took.",
   "types": "./types/index.d.ts",
   "userConfig": {
