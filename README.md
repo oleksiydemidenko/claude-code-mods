@@ -14,10 +14,19 @@ Claude Code caches your conversation so each new message does not pay to re-read
 
 **Why is there a chef?** The cache is the soup, and the chef keeps it simmering.
 
-- **One guest arrives for every hour** you asked for, and they queue at the right.
-- **Each warm-up, the chef carries a bowl** across to the queue, and the next guest sits down to eat.
-- **If an hour passes with no warm-up**, the last guest gives up and leaves. No warm-up means you were busy and the cache was warm anyway.
-- **When you send a message**, the chef tastes the soup himself.
+**One guest arrives for every hour** you asked for, and they queue at the right. While nothing happens, the chef stirs the pot and the guests float in line.
+
+<img src="docs/kitchen-idle.svg" alt="The chef stirs the pot; three guests eat at tables, three more float in the queue" width="720">
+
+**Each warm-up, the chef carries a bowl** across to the queue, and the next guest sits down to eat (the picture at the top).
+
+**If an hour passes with no warm-up**, the last guest gives up and leaves. No warm-up means you were busy and the cache was warm anyway.
+
+<img src="docs/kitchen-leave.svg" alt="The last guest in the queue walks off past the right edge, and the queue closes up" width="720">
+
+**When you send a message**, the chef floats up to the ladle and tastes the soup himself.
+
+<img src="docs/kitchen-taste.svg" alt="The chef floats up to the ladle and tastes the soup; a heart rises beside him" width="720">
 
 So a hungry queue means you worked through the hours, and a full table means the session sat idle while the mod kept it warm.
 
