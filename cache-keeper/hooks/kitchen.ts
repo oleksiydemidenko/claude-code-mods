@@ -59,14 +59,18 @@ function serveCss(): string {
   return (
     bob +
     '@keyframes carry{0%,20%{opacity:0}21%,52%{opacity:1}53%,100%{opacity:0}}' +
-    '@keyframes leave{0%,53%{opacity:1}54%,100%{opacity:0}}' +
-    '@keyframes arrive{0%,53%{opacity:0}54%,100%{opacity:1}}' +
+    // The bowl is handed over (53%): the table with it fades in, the guest
+    // stops floating and settles down to it.
+    '@keyframes tablein{0%,48%{opacity:0}58%,100%{opacity:1}}' +
+    '@keyframes leave{0%,56%{opacity:1}68%,100%{opacity:0}}' +
+    '@keyframes arrive{0%,56%{opacity:0;transform:translateY(-6px)}74%,100%{opacity:1;transform:translateY(0)}}' +
     '@keyframes lidserve{0%{transform:translate(0,0) rotate(0)}6%,90%{transform:translate(-6px,-8px) rotate(-25deg)}96%,100%{transform:translate(0,0) rotate(0)}}' +
-    '@keyframes ladleserve{0%,8%{transform:translate(0,0)}12%{transform:translate(-4px,4px)}16%{transform:translate(0,-2px)}20%,100%{transform:translate(0,0)}}' +
+    '@keyframes ladleserve{0%,6%{transform:translate(0,0)}10%{transform:translate(-3px,3px)}16%,20%{transform:translate(1px,-9px)}26%,100%{transform:translate(0,0)}}' +
     `.walkbob{animation:walkbob ${ms}ms linear 1 forwards}` +
     `.carry{opacity:0;animation:carry ${ms}ms linear 1 forwards}` +
-    `.leave{animation:leave ${ms}ms linear 1 forwards}` +
-    `.arrive{opacity:0;animation:arrive ${ms}ms linear 1 forwards}` +
+    `.tablein{opacity:0;animation:tablein ${ms}ms ease-in-out 1 forwards}` +
+    `.leave{animation:leave ${ms}ms ease-in-out 1 forwards}` +
+    `.arrive{opacity:0;animation:arrive ${ms}ms ease-in-out 1 forwards}` +
     `.lid-run{transform-box:fill-box;transform-origin:50% 100%;animation:lidserve ${ms}ms ease-in-out 1 forwards}` +
     `.ladle-run{animation:ladleserve ${ms}ms ease-in-out 1 forwards}`
   )
@@ -109,13 +113,14 @@ function tasteCss(): string {
   const ms = TASTE_MS
   return (
     '@keyframes lidtaste{0%{transform:translate(0,0) rotate(0)}10%,82%{transform:translate(-6px,-8px) rotate(-25deg)}92%,100%{transform:translate(0,0) rotate(0)}}' +
-    // The ladle comes up out of the pot and leans over towards the chef.
-    '@keyframes ladletaste{0%,14%{transform:translate(0,0) rotate(0)}26%,62%{transform:translate(6px,2px) rotate(40deg)}74%,100%{transform:translate(0,0) rotate(0)}}' +
+    // The ladle rises straight up out of the pot and towards the chef, so its
+    // bowl comes up beside his face as he floats up to meet it.
+    '@keyframes ladletaste{0%,14%{transform:translate(0,0)}30%,62%{transform:translate(8px,-7px)}76%,100%{transform:translate(0,0)}}' +
     // The chef floats up to the ladle, takes it, chews twice and floats back down.
     '@keyframes chew{0%,16%{transform:translate(0,0)}28%{transform:translate(-3px,-10px)}36%{transform:translate(-3px,-8.5px)}44%{transform:translate(-3px,-10px)}52%{transform:translate(-3px,-8.5px)}60%{transform:translate(-3px,-10px)}76%,100%{transform:translate(0,0)}}' +
     '@keyframes yum{0%,44%{opacity:0;transform:translateY(2px)}52%{opacity:1}74%{opacity:1;transform:translateY(-4px)}84%,100%{opacity:0;transform:translateY(-6px)}}' +
     `.lid-run{transform-box:fill-box;transform-origin:50% 100%;animation:lidtaste ${ms}ms ease-in-out 1 forwards}` +
-    `.ladle-run{transform-box:fill-box;transform-origin:50% 100%;animation:ladletaste ${ms}ms ease-in-out 1 forwards}` +
+    `.ladle-run{animation:ladletaste ${ms}ms ease-in-out 1 forwards}` +
     `.taster{animation:chew ${ms}ms ease-in-out 1 forwards}` +
     `.yum{opacity:0;animation:yum ${ms}ms ease-out 1 forwards}`
   )
@@ -187,7 +192,14 @@ const LINE = {
     return `<g class="${cls}"><rect class="m" x="${x}" y="23" width="22" height="2.4" rx="1.2"/><rect class="m" x="${x + 9.4}" y="20.8" width="3.2" height="2.4" rx="1.2"/></g>`
   },
   ladle(cls: string): string {
-    return `<g class="${cls}"><path class="sk" d="M${POT_X + 17} 25L${POT_X + 19} 12.5"/><path class="sk" d="M${POT_X + 19} 12.5l2.5 .6"/></g>`
+    // A round bowl at the bottom of the handle; drawn before the pot, so it is
+    // hidden inside while the ladle rests there.
+    return (
+      `<g class="${cls}">` +
+      `<path class="m" d="M${POT_X + 11.8} 25a3.2 3.2 0 0 0 6.4 0z"/>` +
+      `<path class="sk" d="M${POT_X + 18} 25.2L${POT_X + 19.5} 12.5"/><path class="sk" d="M${POT_X + 19.5} 12.5l2.5 .6"/>` +
+      `</g>`
+    )
   },
   steam(cls: string): string {
     const w = (x: number, d: number): string =>
@@ -208,8 +220,7 @@ const LINE = {
     return lineBowl(CHEF_X + 15, 33)
   },
   yum(): string {
-    // A small heart over the chef's toque.
-    // Beside the head; it rises with the chef.
+    // A small heart beside the head; it rises with the chef.
     const x = CHEF_X + 20
     return `<path class="yum hr" d="M${x} 22c-1.6-1.6-4-.4-3 1.6l3 3 3-3c1-2-1.4-3.2-3-1.6z"/>`
   },
@@ -218,9 +229,16 @@ const LINE = {
     return `<g class="bob" style="animation-delay:-${delay}s">${lineBody(x, 28, LINE_GUESTS[i % LINE_GUESTS.length])}</g>`
   },
   seated(i: number, x: number): string {
+    return this.diner(i, x) + this.table(i, x)
+  },
+  /** A guest sitting to eat, leaning to the bowl now and then. */
+  diner(i: number, x: number): string {
     const delay = ((i * 0.57) % 1.9).toFixed(2)
+    return `<g class="eat" style="animation-delay:-${delay}s">${lineBody(x, 27, LINE_GUESTS[i % LINE_GUESTS.length], false)}</g>`
+  },
+  /** The guest's table with a bowl of soup, and the heart that floats up now and then. */
+  table(i: number, x: number): string {
     return (
-      `<g class="eat" style="animation-delay:-${delay}s">${lineBody(x, 27, LINE_GUESTS[i % LINE_GUESTS.length], false)}</g>` +
       `<rect class="tb" x="${x - 1}" y="36.5" width="20" height="1.8" rx=".9"/>` +
       `<rect class="tb" x="${x + 1}" y="37.5" width="1.6" height="6" rx=".8"/>` +
       `<rect class="tb" x="${x + 15.4}" y="37.5" width="1.6" height="6" rx=".8"/>` +
@@ -264,7 +282,9 @@ export function kitchenSvg({ guests, served, mode = 'idle' }: { guests: number; 
   for (let i = 0; i < n; i++) {
     const x = 2 + i * SLOT
     if (i < fed) people += L.seated(i, x)
-    else if (run === 'serving' && i === fed) people += `<g class="leave">${L.standing(i, x)}</g><g class="arrive">${L.seated(i, x)}</g>`
+    else if (run === 'serving' && i === fed) {
+      people += `<g class="tablein">${L.table(i, x)}</g><g class="leave">${L.standing(i, x)}</g><g class="arrive">${L.diner(i, x)}</g>`
+    }
     else if (run === 'leaving' && i === n - 1) continue
     else people += L.standing(i, x)
   }
@@ -292,8 +312,8 @@ export function kitchenSvg({ guests, served, mode = 'idle' }: { guests: number; 
     `<g transform="${SCALE}">` +
     L.steam(isRun ? 'open' : '') +
     L.fire() +
-    L.pot() +
     L.ladle(isRun ? 'ladle-run' : 'ladle-idle') +
+    L.pot() +
     L.lid(isRun ? 'lid-run' : 'lid-idle') +
     `</g>` +
     queue +

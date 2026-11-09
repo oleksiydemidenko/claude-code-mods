@@ -251,6 +251,6 @@ test('in English by default; with auto, the words the person types choose the la
   expect(await sceneAlt(ui)).toBe('Kitchen: fed 0 of 2')
 
   await $.prompt.submit({ text: 'Привіт, як справи? Що там із кешем?' })
-  expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Варимо, ще 2 год')
+  expect((await ui.find({ type: 'Svg' }))?.props.alt).toBe('Булькає, ще 2 год')
   await ui.unmount()
 })

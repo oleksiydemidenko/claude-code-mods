@@ -155,7 +155,7 @@ export const STRINGS: Record<Lang, Strings> = {
   uk: {
     cmdDescription: 'Тримати кеш цієї сесії теплим: on [години], off, show band|status|both, demo; без слова — стан',
     argHint: 'on [години] | off | show band|status|both | demo [гостей]|stop',
-    title: 'Варимо',
+    title: 'Булькає',
     timeLeft: d => `ще ${d}`,
     demoSub: t => `демо · ${t}`,
     tally: (s, t, l) => `нагодовано ${s} з ${t}${l > 0 ? `, пішли голодними ${l}` : ''}`,
