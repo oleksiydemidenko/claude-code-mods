@@ -1,6 +1,6 @@
 {
   "name": "cache-keeper",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Keeps your prompt cache warm while you are away: once you switch it on, it sends one small request per idle hour, which counts toward your usage. Shown as a tiny kitchen; warns once before a message into a cold session.",
   "types": "./types/index.d.ts",
   "userConfig": {
@@ -32,5 +32,9 @@
     "name": "Oleksiy"
   },
   "homepage": "https://github.com/oleksiydemidenko/claude-code-mods",
-  "repository": "https://github.com/oleksiydemidenko/claude-code-mods"
+  "repository": "https://github.com/oleksiydemidenko/claude-code-mods",
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/oleksiydemidenko/claude-code-mods/tree/main/cache-keeper#readme",
+  "supportUrl": "https://github.com/oleksiydemidenko/claude-code-mods/issues",
+  "privacyPolicyUrl": "https://github.com/oleksiydemidenko/claude-code-mods/tree/main/cache-keeper#privacy"
 }
