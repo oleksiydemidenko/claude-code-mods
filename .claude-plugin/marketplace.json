@@ -8,7 +8,7 @@
     {
       "name": "cache-keeper",
       "source": "./cache-keeper",
-      "description": "Keeps your prompt cache warm while you are away, shown as a tiny kitchen where a chef feeds one guest per hour."
+      "description": "Keeps your prompt cache warm while you are away: once switched on, it sends one small request per idle hour, which counts toward your usage. Shown as a tiny kitchen."
     },
     {
       "name": "answer-divider",

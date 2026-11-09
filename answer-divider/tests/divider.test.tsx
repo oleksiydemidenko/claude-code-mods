@@ -102,10 +102,38 @@ test('/answer-line switches between triangles and the wave', RU, async ($, on) =
   expect(wrong.text).toContain('Не понял')
 })
 
-test('answers and the chosen line from an earlier session are read back', RU, async ($, on) => {
+const OLD_ANSWER = 'Старый ответ из прошлой сессии'
+
+/** A resumed session's transcript: one interim step with a tool call, then the answer. */
+const TRANSCRIPT = [
+  { role: 'user', text: 'Вопрос', toolUses: [] },
+  { role: 'assistant', text: 'Сейчас посмотрю.', toolUses: [{ id: 'u1', name: 'Read', input: {} }] },
+  { role: 'user', text: '', toolUses: [], toolResults: [{ tool_use_id: 'u1', text: 'ok', isError: false }] },
+  { role: 'assistant', text: OLD_ANSWER, toolUses: [] },
+]
+
+test('a resumed session reads its answers from the transcript and keeps no text on disk', RU, async ($, on) => {
+  const written = new Map<string, unknown>()
+  const deleted: string[] = []
+  // What an earlier version left: answer text on disk.
+  const disk: Record<string, unknown> = {
+    line: 'triangles',
+    answers: [OLD_ANSWER],
+    ends: [{ tail: OLD_ANSWER, ms: 42_000 }],
+  }
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('command.register', () => ({ value: { command: 'answer-line' } }))
-  on('store.get', (_, e) => ({ value: e.key === 'line' ? 'triangles' : ['Старый ответ из прошлой сессии'] }))
+  on('session.messages', () => ({ value: TRANSCRIPT }))
+  on('store.get', (_, e) => ({ value: disk[e.key] }))
+  on('store.set', (_, e) => {
+    written.set(e.key, e.value)
+    return { value: undefined }
+  })
+  on('store.delete', (_, e) => {
+    deleted.push(e.key)
+    return { value: undefined }
+  })
+  on('turn.complete', (_, e) => ({ text: e.answer }))
   on('ui.render', ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text>engine</Text>
@@ -113,11 +141,27 @@ test('answers and the chosen line from an earlier session are read back', RU, as
 
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
 
-  const old = await $.ui.mount(message('Старый ответ из прошлой сессии', 'desktop'))
+  // The answer from the transcript gets the chosen line and its time back.
+  const old = await $.ui.mount(message(OLD_ANSWER, 'desktop'))
   const line = await old.find({ type: 'Svg' })
   expect(line?.props.alt).toBe('ОТВЕТ')
   expect(String(line?.props.source)).toContain('<polygon')
+  expect(await timeOf(old)).toBe('Время ответа: 42 с')
   await old.unmount()
+
+  // The interim step stays dim.
+  const interim = await $.ui.mount(message('Сейчас посмотрю.', 'desktop'))
+  expect((await interim.find({ type: 'Markdown' }))?.props.dimColor).toBe(true)
+  await interim.unmount()
+
+  // The old text is gone from disk; what is written holds no answer text.
+  expect(deleted).toContain('answers')
+  expect(deleted).toContain('ends')
+  await finishTurn($)
+  const stored = JSON.stringify([...written.values()])
+  expect(stored).not.toContain('Старый')
+  expect(stored).not.toContain('сделать')
+  expect(written.has('times')).toBe(true)
 })
 
 test('a one-block answer gets the line above and the time below', RU, async ($, on) => {

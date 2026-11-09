@@ -10,7 +10,7 @@ Two small mods for [Claude Code](https://claude.com/claude-code): one keeps your
 
 Claude Code caches your conversation so each new message does not pay to re-read it. The cache cools down after a while with no requests (cache-keeper assumes one hour). Come back after that, and your next message reads the whole context again at full price.
 
-`/cache-warm on 6` keeps the cache warm for 6 hours. Whenever the session has been quiet for 50 minutes, the mod asks the model a tiny side question about the session. It never shows in the chat, and the cache stays warm.
+`/cache-warm on 6` keeps the cache warm for 6 hours. Whenever the session has been quiet for 50 minutes, the mod sends the model one tiny side question about the session, asking for a one-word answer. It never shows in the chat, and the cache stays warm. **These are real requests, sent on your behalf, and they count toward your usage** (see *What it sends and costs* below).
 
 **Why is there a chef?** The cache is the soup, and the chef keeps it simmering.
 
@@ -40,7 +40,7 @@ There is also a **guard**. The first message into a large session whose cache ha
 | `/cache-warm show band\|status\|both` | Kitchen above the prompt, a plain status line under it, or both |
 | `/cache-warm demo [guests]` | A one-minute pretend shift, to see the kitchen at work |
 
-**What it costs.** Each warm-up is one small request that reads your cached context. Cache reads cost about a tenth of normal input, and they count toward your plan's limits. That is worth it when you come back to a long session; turn it off when you are done.
+**What it sends and costs.** Only while you have switched it on, and only in that session, the mod sends at most one small request per idle hour: a side question over the session's own history, *"A service check that only keeps this session's prompt cache warm. Do nothing and answer with one word: ok."* It reads your cached context, which costs about a tenth of normal input. On a Claude plan it counts toward your plan's usage limits; with an API key it is billed like any other request. It stops by itself when the hours run out, or at once with `/cache-warm off`. That is worth it when you come back to a long session; turn it off when you are done. The guard and the demo send nothing.
 
 ---
 
@@ -54,7 +54,7 @@ Claude often thinks out loud between tool calls, and in a long turn the final an
 - **dims the interim text** between tool calls;
 - **shows how long the turn took** under the answer.
 
-`/answer-line` switches between a wave and a row of small triangles. Only the drawing changes: nothing the model reads.
+`/answer-line` switches between a wave and a row of small triangles. Only the drawing changes: nothing the model reads. It sends nothing to the model or anywhere else.
 
 ---
 
@@ -75,10 +75,19 @@ English, Ukrainian, Russian, Belarusian, Polish, German, French, Spanish, Italia
 
 The kitchen's title is each language's own word for something on the stove: *Cooking*, *Mijote*, *Köchelt*, *Sobbolle*, *コトコト中*, *보글보글*…
 
+## Privacy
+
+Neither mod has servers of its own, analytics or network requests; cache-keeper's warm-ups go through Claude Code itself, to the model your session already uses. Both keep a few small values in Claude Code's local plugin storage on your computer and no text from your conversations:
+
+- **cache-keeper:** when each recent session last talked to the model, the display you chose, and the detected language code.
+- **answer-divider:** the line style you chose, and for recent answers how long the turn took next to a one-way fingerprint of the answer's end, plus the detected language code. Versions before 1.0.3 kept the start and end of recent answers there; 1.0.3 deletes them.
+
+Each mod's own README in its folder says exactly what it runs, reads and keeps.
+
 ## Notes
 
 - Colors follow the app: orange on a dark theme, soft gray on a light one.
-- Built on Claude Code's plugin API, which is still in early access. A Claude Code update may need a mod update; issues and pull requests are welcome.
+- Built on Claude Code's plugin API, which is still in early access. A Claude Code update may need a mod update; questions, bug reports and pull requests are welcome in [GitHub issues](https://github.com/oleksiydemidenko/claude-code-mods/issues).
 - This is a personal project, not affiliated with or endorsed by Anthropic.
 
 MIT license.

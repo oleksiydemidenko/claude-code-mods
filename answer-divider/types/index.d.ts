@@ -1,4 +1,4 @@
-/** A final answer's text, reduced to its plain letters, as the mod compares it. */
+/** A final answer's text, reduced to its plain letters, as the mod compares it. Held in memory only. */
 export type AnswerKey = string
 
 /** How the line above the answer is drawn. */

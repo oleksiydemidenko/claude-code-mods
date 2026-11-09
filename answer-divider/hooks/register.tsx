@@ -7,16 +7,19 @@ import type { Lang } from './i18n'
 import { STRINGS } from './strings'
 
 // The final answers of past turns, reduced to plain letters. Kept in $.state
-// for drawing and in $.store so a resumed session still knows its answers.
+// for drawing only; a resumed session reads them again from its own transcript.
+// No answer text is ever written to disk.
 const answers = atom({ plugin: 'answer-divider', key: 'answers' } as const, [] as AnswerKey[])
 // Which line is drawn above the answer; /answer-line switches it.
 const style = atom({ plugin: 'answer-divider', key: 'line' } as const, 'wave' as LineStyle)
 // The end of each final answer and how long its turn took: drawn under it.
 const ends = atom({ plugin: 'answer-divider', key: 'ends' } as const, [] as AnswerEnd[])
 
-const STORE_ANSWERS = 'answers'
 const STORE_STYLE = 'line'
-const STORE_ENDS = 'ends'
+/** Each answer's time, stored by a fingerprint of the answer's end, never its text. */
+const STORE_TIMES = 'times'
+/** Keys earlier versions wrote with answer text in them: removed on start. */
+const OLD_STORE_KEYS = ['answers', 'ends']
 const LANG_KEY = 'lang'
 const MAX_KEPT = 150
 const MAX_LENGTH = 8000
@@ -159,6 +162,59 @@ function asEnds(value: unknown): AnswerEnd[] {
   )
 }
 
+/** A stored answer time: a fingerprint of the answer's end and the turn's length. */
+type StoredTime = { mark: string; ms: number }
+
+function asTimes(value: unknown): StoredTime[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(
+    (v): v is StoredTime =>
+      v !== null && typeof v === 'object' && typeof v.mark === 'string' && typeof v.ms === 'number',
+  )
+}
+
+/**
+ * A short one-way fingerprint of a text (cyrb53, 64 bits as hex): enough to
+ * know an answer's end again, while the text itself cannot be read back from it.
+ */
+function fingerprint(text: string): string {
+  let h1 = 0xdeadbeef
+  let h2 = 0x41c6ce57
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i)
+    h1 = Math.imul(h1 ^ c, 2654435761)
+    h2 = Math.imul(h2 ^ c, 1597334677)
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+  return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0')
+}
+
+function tailOf(answer: string): string {
+  return plainOf(answer).slice(-HEAD)
+}
+
+/**
+ * The final answers in a transcript, oldest first: in each turn (from one
+ * typed prompt to the next) the last assistant message with text and no tool
+ * call, as `turn.complete` reports it.
+ */
+function answersIn(messages: readonly { role: string; text: string; toolUses: readonly unknown[]; toolResults?: readonly unknown[] }[]): string[] {
+  const found: string[] = []
+  let last = ''
+  for (const m of messages) {
+    if (m.role === 'user') {
+      if (m.toolResults !== undefined && m.toolResults.length > 0) continue
+      if (last !== '') found.push(last)
+      last = ''
+    } else {
+      last = m.toolUses.length === 0 && m.text.trim() !== '' ? m.text : ''
+    }
+  }
+  if (last !== '') found.push(last)
+  return found.slice(-MAX_KEPT)
+}
+
 /** The entry whose answer ends with this block, the latest first. */
 function endOf(blockText: string, list: readonly AnswerEnd[]): AnswerEnd | undefined {
   const block = plainOf(blockText)
@@ -193,6 +249,8 @@ function styleFromArgs(args: string, current: LineStyle): LineStyle | undefined 
 /** The language the mod speaks; with the option on `auto`, learned from the answers. */
 let lang: Lang = 'en'
 let langOption = 'en'
+/** The answer times as stored, read at session start; module state starts over on a reload. */
+let storedTimes: StoredTime[] = []
 
 function S() {
   return STRINGS[lang]
@@ -245,24 +303,47 @@ export const register: Register = (on, options) => {
       argumentHint: 'wave | triangles',
     })
 
-    const stored = asKeys(await $.store.get(STORE_ANSWERS))
-    if (stored.length > 0) {
-      await update($, answers, list => {
-        const current = asKeys(list)
-        return [...stored.filter(k => !current.includes(k)), ...current].slice(-MAX_KEPT)
-      })
-    }
-
     const storedStyle = asStyle(await $.store.get(STORE_STYLE))
     if (storedStyle !== undefined) await update($, style, () => storedStyle)
 
-    const storedEnds = asEnds(await $.store.get(STORE_ENDS))
-    if (storedEnds.length > 0) {
-      await update($, ends, list => {
-        const current = asEnds(list)
-        const known = new Set(current.map(end => end.tail))
-        return [...storedEnds.filter(end => !known.has(end.tail)), ...current].slice(-MAX_KEPT)
+    // An earlier version kept answer text on disk: keep only its times, by
+    // fingerprint, and remove the text.
+    const times = asTimes(await $.store.get(STORE_TIMES))
+    const oldEnds = asEnds(await $.store.get('ends'))
+    if (oldEnds.length > 0) {
+      const marks = new Set(times.map(t => t.mark))
+      for (const end of oldEnds) {
+        const mark = fingerprint(end.tail)
+        if (!marks.has(mark)) times.push({ mark, ms: end.ms })
+      }
+      await $.store.set(STORE_TIMES, times.slice(-MAX_KEPT)).catch(() => undefined)
+    }
+    storedTimes = times.slice(-MAX_KEPT)
+    for (const key of OLD_STORE_KEYS) await $.store.delete(key).catch(() => undefined)
+
+    // A resumed session: its answers from its own transcript, their times by fingerprint.
+    const messages = await $.session.messages()
+    const past = Array.isArray(messages) ? answersIn(messages) : []
+    if (past.length > 0) {
+      await update($, answers, list => {
+        const current = asKeys(list)
+        const keys = past.map(keyOf)
+        return [...keys.filter(k => !current.includes(k)), ...current].slice(-MAX_KEPT)
       })
+      const msByMark = new Map(times.map(t => [t.mark, t.ms]))
+      const found: AnswerEnd[] = []
+      for (const answer of past) {
+        const tail = tailOf(answer)
+        const ms = msByMark.get(fingerprint(tail))
+        if (ms !== undefined) found.push({ tail, ms })
+      }
+      if (found.length > 0) {
+        await update($, ends, list => {
+          const current = asEnds(list)
+          const known = new Set(current.map(end => end.tail))
+          return [...found.filter(end => !known.has(end.tail)), ...current].slice(-MAX_KEPT)
+        })
+      }
     }
 
     return result
@@ -283,20 +364,22 @@ export const register: Register = (on, options) => {
     if (e.agentId === undefined && e.answer.trim() !== '') {
       await learnLang($, e.answer)
       const key = keyOf(e.answer)
-      const kept = await update($, answers, list => {
+      await update($, answers, list => {
         const rest = asKeys(list).filter(k => k !== key)
         rest.push(key)
         return rest.slice(-MAX_KEPT)
       })
-      await $.store.set(STORE_ANSWERS, kept).catch(() => undefined)
 
-      const end: AnswerEnd = { tail: plainOf(e.answer).slice(-HEAD), ms: e.durationMs }
-      const keptEnds = await update($, ends, list => {
+      const end: AnswerEnd = { tail: tailOf(e.answer), ms: e.durationMs }
+      await update($, ends, list => {
         const rest = asEnds(list).filter(one => one.tail !== end.tail)
         rest.push(end)
         return rest.slice(-MAX_KEPT)
       })
-      await $.store.set(STORE_ENDS, keptEnds).catch(() => undefined)
+
+      const mark = fingerprint(end.tail)
+      storedTimes = [...storedTimes.filter(t => t.mark !== mark), { mark, ms: end.ms }].slice(-MAX_KEPT)
+      await $.store.set(STORE_TIMES, storedTimes).catch(() => undefined)
     }
     return next(e)
   })
