@@ -62,7 +62,7 @@ In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add 
 
 ## Languages
 
-English, Ukrainian, Russian, Belarusian, Polish, German, French, Spanish, Italian, Portuguese, Japanese, Chinese and Korean. By default each mod speaks the language you write in. To fix one, set the mod's `language` option in `/config`.
+English, Ukrainian, Russian, Belarusian, Polish, German, French, Spanish, Italian, Portuguese, Japanese, Chinese and Korean. The mods speak English by default; set a mod's `language` option in `/config` to another language, or to `auto` to follow the language you write in.
 
 The kitchen's title is each language's own word for something on the stove: *Cooking*, *Mijote*, *Köchelt*, *Sobbolle*, *コトコト中*, *보글보글*…
 

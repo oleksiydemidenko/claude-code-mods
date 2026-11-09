@@ -68,8 +68,8 @@ let runSeq = 0
 let stopDemo: (() => void) | null = null
 /** The language the mod speaks, chosen at session start; `auto` may change it after the first message. */
 let lang: Lang = 'en'
-/** The `language` option: a language, or `auto`. */
-let langOption = 'auto'
+/** The `language` option: a language (English by default), or `auto`. */
+let langOption = 'en'
 
 function S() {
   return STRINGS[lang]
@@ -401,7 +401,7 @@ async function indicator($: Dollar) {
 }
 
 export const register: Register = (on, options) => {
-  langOption = typeof options.language === 'string' ? options.language : 'auto'
+  langOption = typeof options.language === 'string' ? options.language : 'en'
   lang = isLang(langOption) ? langOption : 'en'
 
   on('session.start', async ($, e, next) => {

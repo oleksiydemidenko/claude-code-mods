@@ -143,7 +143,7 @@ test('a one-block answer gets the line above and the time below', RU, async ($, 
   }
 })
 
-test('in English by default; an answer in another language switches the words', async ($, on) => {
+test('in English; with auto, an answer in another language switches the words', { options: { language: 'auto' } }, async ($, on) => {
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('store.set', () => ({ value: undefined }))
   on('ui.render', ($, e) => {

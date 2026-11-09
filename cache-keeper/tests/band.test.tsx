@@ -239,7 +239,7 @@ test('the demo lets every third guest leave hungry', RU, async ($, on) => {
   await ui.unmount()
 })
 
-test('in English by default; with auto, the words the person types choose the language', async ($, on) => {
+test('in English by default; with auto, the words the person types choose the language', { options: { language: 'auto' } }, async ($, on) => {
   mock.clock(on, { now: START })
   mock.store(on)
   engine(on)

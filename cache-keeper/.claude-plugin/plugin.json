@@ -1,14 +1,14 @@
 {
   "name": "cache-keeper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Keeps your prompt cache warm while you are away, shown as a tiny kitchen where a chef feeds one guest per hour; warns once before a message into a cold session.",
   "types": "./types/index.d.ts",
   "userConfig": {
     "language": {
       "type": "string",
       "title": "Language",
-      "description": "The language of the mod's words. auto: the language you write in.",
-      "default": "auto",
+      "description": "The language of the mod's words: English by default; auto follows the language you write in.",
+      "default": "en",
       "options": [
         "auto",
         "en",

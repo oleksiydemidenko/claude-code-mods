@@ -192,7 +192,7 @@ function styleFromArgs(args: string, current: LineStyle): LineStyle | undefined 
 
 /** The language the mod speaks; with the option on `auto`, learned from the answers. */
 let lang: Lang = 'en'
-let langOption = 'auto'
+let langOption = 'en'
 
 function S() {
   return STRINGS[lang]
@@ -232,7 +232,7 @@ async function learnLang($: EngineInterface, text: string): Promise<void> {
 // --- Hooks -------------------------------------------------------------------
 
 export const register: Register = (on, options) => {
-  langOption = typeof options.language === 'string' ? options.language : 'auto'
+  langOption = typeof options.language === 'string' ? options.language : 'en'
   lang = isLang(langOption) ? langOption : 'en'
 
   on('session.start', async ($, e, next) => {

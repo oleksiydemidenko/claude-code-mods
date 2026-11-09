@@ -109,10 +109,10 @@ function tasteCss(): string {
   const ms = TASTE_MS
   return (
     '@keyframes lidtaste{0%{transform:translate(0,0) rotate(0)}10%,82%{transform:translate(-6px,-8px) rotate(-25deg)}92%,100%{transform:translate(0,0) rotate(0)}}' +
-    // The ladle comes up out of the pot and tips towards the chef's mouth.
-    '@keyframes ladletaste{0%,14%{transform:translate(0,0) rotate(0)}26%,62%{transform:translate(3px,-5px) rotate(28deg)}74%,100%{transform:translate(0,0) rotate(0)}}' +
-    // The chef leans in, takes it, chews twice, straightens up.
-    '@keyframes chew{0%,18%{transform:translate(0,0)}26%{transform:translate(-2px,0)}34%{transform:translate(-2px,1.5px)}42%{transform:translate(-2px,0)}50%{transform:translate(-2px,1.5px)}58%{transform:translate(-2px,0)}68%,100%{transform:translate(0,0)}}' +
+    // The ladle comes up out of the pot and leans over towards the chef.
+    '@keyframes ladletaste{0%,14%{transform:translate(0,0) rotate(0)}26%,62%{transform:translate(6px,2px) rotate(40deg)}74%,100%{transform:translate(0,0) rotate(0)}}' +
+    // The chef floats up to the ladle, takes it, chews twice and floats back down.
+    '@keyframes chew{0%,16%{transform:translate(0,0)}28%{transform:translate(-3px,-10px)}36%{transform:translate(-3px,-8.5px)}44%{transform:translate(-3px,-10px)}52%{transform:translate(-3px,-8.5px)}60%{transform:translate(-3px,-10px)}76%,100%{transform:translate(0,0)}}' +
     '@keyframes yum{0%,44%{opacity:0;transform:translateY(2px)}52%{opacity:1}74%{opacity:1;transform:translateY(-4px)}84%,100%{opacity:0;transform:translateY(-6px)}}' +
     `.lid-run{transform-box:fill-box;transform-origin:50% 100%;animation:lidtaste ${ms}ms ease-in-out 1 forwards}` +
     `.ladle-run{transform-box:fill-box;transform-origin:50% 100%;animation:ladletaste ${ms}ms ease-in-out 1 forwards}` +
@@ -209,8 +209,9 @@ const LINE = {
   },
   yum(): string {
     // A small heart over the chef's toque.
-    const x = CHEF_X + 17
-    return `<path class="yum hr" d="M${x} 14c-1.6-1.6-4-.4-3 1.6l3 3 3-3c1-2-1.4-3.2-3-1.6z"/>`
+    // Beside the head; it rises with the chef.
+    const x = CHEF_X + 20
+    return `<path class="yum hr" d="M${x} 22c-1.6-1.6-4-.4-3 1.6l3 3 3-3c1-2-1.4-3.2-3-1.6z"/>`
   },
   standing(i: number, x: number): string {
     const delay = ((i * 1.27) % 3.6).toFixed(2)
@@ -277,7 +278,7 @@ export function kitchenSvg({ guests, served, mode = 'idle' }: { guests: number; 
     const back = (queueW + CHEF_X + BODY_W + 2) * S
     chefDrawn = walkSmil(back, `<g transform="${SCALE}"><g class="walkbob">${L.chef(`<g class="carry">${L.carried()}</g>`)}</g></g>`)
   }
-  else if (run === 'taste') chefDrawn = `<g transform="${SCALE}"><g class="taster">${L.chef('')}</g>${L.yum()}</g>`
+  else if (run === 'taste') chefDrawn = `<g transform="${SCALE}"><g class="taster">${L.chef('')}${L.yum()}</g></g>`
   else chefDrawn = `<g transform="${SCALE}">${L.chef('')}</g>`
 
   const css =
