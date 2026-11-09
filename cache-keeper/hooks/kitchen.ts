@@ -59,18 +59,19 @@ function serveCss(): string {
   return (
     bob +
     '@keyframes carry{0%,20%{opacity:0}21%,52%{opacity:1}53%,100%{opacity:0}}' +
-    // The bowl is handed over (53%): the table with it fades in, the guest
-    // stops floating and settles down to it.
-    '@keyframes tablein{0%,48%{opacity:0}58%,100%{opacity:1}}' +
-    '@keyframes leave{0%,56%{opacity:1}68%,100%{opacity:0}}' +
-    '@keyframes arrive{0%,56%{opacity:0;transform:translateY(-6px)}74%,100%{opacity:1;transform:translateY(0)}}' +
+    // The bowl is handed over (53%). The same guest has stopped floating by
+    // then; they settle onto the seat, their legs tuck away, and the table
+    // with the bowl fades in in front of them.
+    '@keyframes tablein{0%,50%{opacity:0}64%,100%{opacity:1}}' +
+    '@keyframes settle{0%,54%{transform:translateY(0)}68%,100%{transform:translateY(-1px)}}' +
+    '@keyframes tuck{0%,52%{opacity:1}66%,100%{opacity:0}}' +
     '@keyframes lidserve{0%{transform:translate(0,0) rotate(0)}6%,90%{transform:translate(-6px,-8px) rotate(-25deg)}96%,100%{transform:translate(0,0) rotate(0)}}' +
     '@keyframes ladleserve{0%,6%{transform:translate(0,0)}10%{transform:translate(-3px,3px)}16%,20%{transform:translate(1px,-9px)}26%,100%{transform:translate(0,0)}}' +
     `.walkbob{animation:walkbob ${ms}ms linear 1 forwards}` +
     `.carry{opacity:0;animation:carry ${ms}ms linear 1 forwards}` +
     `.tablein{opacity:0;animation:tablein ${ms}ms ease-in-out 1 forwards}` +
-    `.leave{animation:leave ${ms}ms ease-in-out 1 forwards}` +
-    `.arrive{opacity:0;animation:arrive ${ms}ms ease-in-out 1 forwards}` +
+    `.settle{animation:settle ${ms}ms ease-in-out 1 forwards}` +
+    `.tuck{animation:tuck ${ms}ms ease-in-out 1 forwards}` +
     `.lid-run{transform-box:fill-box;transform-origin:50% 100%;animation:lidserve ${ms}ms ease-in-out 1 forwards}` +
     `.ladle-run{animation:ladleserve ${ms}ms ease-in-out 1 forwards}`
   )
@@ -151,7 +152,7 @@ function lineCss(): string {
 const LINE_GUESTS = ['g0', 'g1', 'g2', 'g3']
 
 /** The body: a rounded block with two eyes, arm nubs and four short legs. */
-function lineBody(x: number, y: number, cls: string, legs = true): string {
+function lineBody(x: number, y: number, cls: string, legs = true, legsClass = ''): string {
   let out =
     `<rect class="${cls}" x="${x + 2}" y="${y}" width="14" height="10" rx="3.5"/>` +
     `<rect class="${cls}" x="${x}" y="${y + 4.5}" width="4" height="2.6" rx="1.3"/>` +
@@ -159,9 +160,11 @@ function lineBody(x: number, y: number, cls: string, legs = true): string {
     `<rect class="e" x="${x + 5.6}" y="${y + 2.6}" width="1.8" height="3.2" rx=".9"/>` +
     `<rect class="e" x="${x + 10.6}" y="${y + 2.6}" width="1.8" height="3.2" rx=".9"/>`
   if (legs) {
+    let feet = ''
     for (const lx of [4.5, 7.8, 10.2, 13.5]) {
-      out += `<rect class="${cls}" x="${x + lx - 0.9}" y="${y + 9}" width="1.8" height="5" rx=".9"/>`
+      feet += `<rect class="${cls}" x="${x + lx - 0.9}" y="${y + 9}" width="1.8" height="5" rx=".9"/>`
     }
+    out += legsClass === '' ? feet : `<g class="${legsClass}">${feet}</g>`
   }
   return out
 }
@@ -224,6 +227,15 @@ const LINE = {
     const x = CHEF_X + 20
     return `<path class="yum hr" d="M${x} 22c-1.6-1.6-4-.4-3 1.6l3 3 3-3c1-2-1.4-3.2-3-1.6z"/>`
   },
+  /**
+   * The guest about to be fed: floats only to the end of the beat it is in,
+   * so it has come to rest by the time the bowl arrives, then settles down.
+   */
+  lander(i: number, x: number): string {
+    const delay = ((i * 1.27) % 3.6).toFixed(2)
+    const body = lineBody(x, 28, LINE_GUESTS[i % LINE_GUESTS.length], true, 'tuck')
+    return `<g class="settle"><g class="bob" style="animation-delay:-${delay}s;animation-iteration-count:1;animation-fill-mode:forwards">${body}</g></g>`
+  },
   standing(i: number, x: number): string {
     const delay = ((i * 1.27) % 3.6).toFixed(2)
     return `<g class="bob" style="animation-delay:-${delay}s">${lineBody(x, 28, LINE_GUESTS[i % LINE_GUESTS.length])}</g>`
@@ -283,7 +295,7 @@ export function kitchenSvg({ guests, served, mode = 'idle' }: { guests: number; 
     const x = 2 + i * SLOT
     if (i < fed) people += L.seated(i, x)
     else if (run === 'serving' && i === fed) {
-      people += `<g class="tablein">${L.table(i, x)}</g><g class="leave">${L.standing(i, x)}</g><g class="arrive">${L.diner(i, x)}</g>`
+      people += `${L.lander(i, x)}<g class="tablein">${L.table(i, x)}</g>`
     }
     else if (run === 'leaving' && i === n - 1) continue
     else people += L.standing(i, x)
