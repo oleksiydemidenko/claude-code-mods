@@ -164,6 +164,30 @@ test('a resumed session reads its answers from the transcript and keeps no text 
   expect(written.has('times')).toBe(true)
 })
 
+test('answer times written by other sessions meanwhile are kept, and many fit', RU, async ($, on) => {
+  const disk: Record<string, unknown> = { times: [] }
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: { command: 'answer-line' } }))
+  on('session.messages', () => ({ value: [] }))
+  on('store.get', (_, e) => ({ value: disk[e.key] }))
+  on('store.set', (_, e) => {
+    disk[e.key] = e.value
+    return { value: undefined }
+  })
+  on('store.delete', () => ({ value: undefined }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+
+  // Another session, running side by side, writes 200 answer times after this one started.
+  disk.times = Array.from({ length: 200 }, (_, i) => ({ mark: `other-${i}`, ms: i }))
+  await finishTurn($)
+
+  const times = disk.times as { mark: string; ms: number }[]
+  expect(times.length).toBe(201)
+  expect(times[0]?.mark).toBe('other-0')
+  expect(times[200]?.ms).toBe(1000)
+})
+
 test('a one-block answer gets the line above and the time below', RU, async ($, on) => {
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('store.set', () => ({ value: undefined }))

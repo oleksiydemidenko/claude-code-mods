@@ -8,7 +8,7 @@ const START = 1_800_000_000_000
 const MIN = 60_000
 
 function engine(on: On, tokens: number) {
-  const calls = { forks: 0, fills: [] as string[], submitted: [] as string[], origins: [] as string[] }
+  const calls = { forks: 0, fills: [] as string[], submitted: [] as string[], origins: [] as string[], toasts: [] as string[] }
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('command.register', () => ({ value: { command: 'cache-warm' } }))
   on('session.id', () => ({ value: 'session-1' }))
@@ -16,7 +16,10 @@ function engine(on: On, tokens: number) {
     value: { startedAt: START, context: { tokens, window: 200_000 }, rateLimits: [] },
   }))
   on('ui.status', () => ({ value: undefined }))
-  on('ui.toast', () => ({ value: undefined }))
+  on('ui.toast', (_, e) => {
+    calls.toasts.push(e.text)
+    return { value: undefined }
+  })
   on('turn.start', () => ({}))
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('prompt.fill', (_, e) => {
@@ -131,6 +134,77 @@ test('/cache-warm off stops it, and a wrong word is explained', RU, async ($, on
 
   const wrong = await $.command.run({ command: 'cache-warm', args: 'завтра' })
   expect(wrong.text).toContain('Не понял')
+})
+
+/** A store the test can look into: the same hooks mock.store answers. */
+function memoryStore(on: On, entries: Record<string, unknown> = {}) {
+  const data: Record<string, unknown> = { ...entries }
+  on('store.get', (_, e) => ({ value: data[e.key] }))
+  on('store.set', (_, e) => {
+    data[e.key] = JSON.parse(JSON.stringify(e.value))
+    return { value: undefined }
+  })
+  on('store.delete', (_, e) => {
+    delete data[e.key]
+    return { value: undefined }
+  })
+  on('store.keys', () => ({ value: Object.keys(data) }))
+  return data
+}
+
+const WARM_3H = { until: START + 3 * 60 * MIN, startedAt: START, count: 0, last: null, guests: 3, served: 0, left: 0 }
+
+test('/cache-warm on is kept in the store for the session, and off removes it', RU, async ($, on) => {
+  mock.clock(on, { now: START })
+  const store = memoryStore(on)
+  engine(on, 120_000)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await finishTurn($)
+
+  await $.command.run({ command: 'cache-warm', args: 'on 3' })
+  const kept = store.warm as Record<string, { until: number }>
+  expect(kept['session-1']?.until).toBe(START + 3 * 60 * MIN)
+
+  await $.command.run({ command: 'cache-warm', args: 'off' })
+  const after = store.warm as Record<string, unknown>
+  expect(after['session-1']).toBeUndefined()
+})
+
+test('warming comes back on when the app starts a paused session again', RU, async ($, on) => {
+  const clock = mock.clock(on, { now: START + 20 * MIN })
+  mock.store(on, { lastActivity: { 'session-1': START }, warm: { 'session-1': WARM_3H } })
+  const calls = engine(on, 120_000)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+
+  expect(calls.toasts.join('\n')).toContain('Прогрев кэша снова включён')
+  expect(calls.toasts.join('\n')).toContain('кэш ещё тёплый')
+  const status = await $.command.run({ command: 'cache-warm', args: '' })
+  expect(status.text).toContain('Прогрев кэша включён')
+  expect(status.text).toContain('Пауз от приложения: 1')
+
+  // Quiet for 50 minutes since the last request: the warm-up runs again.
+  await clock.advance(31 * MIN)
+  expect(calls.forks).toBe(1)
+})
+
+test('after a long pause the person is told the cache went cold', RU, async ($, on) => {
+  mock.clock(on, { now: START + 90 * MIN })
+  mock.store(on, { lastActivity: { 'session-1': START }, warm: { 'session-1': WARM_3H } })
+  const calls = engine(on, 120_000)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  expect(calls.toasts.join('\n')).toContain('кэш остыл')
+})
+
+test('warming that ran out during a pause ends with its note', RU, async ($, on) => {
+  mock.clock(on, { now: START + 5 * 60 * MIN })
+  const store = memoryStore(on, { lastActivity: { 'session-1': START }, warm: { 'session-1': WARM_3H } })
+  const calls = engine(on, 120_000)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+
+  expect(calls.toasts.join('\n')).toContain('Прогрев кэша выключен: прошло 3 ч')
+  const status = await $.command.run({ command: 'cache-warm', args: '' })
+  expect(status.text).toContain('Прогрев кэша выключен.')
+  expect((store.warm as Record<string, unknown>)['session-1']).toBeUndefined()
 })
 
 test('a resumed session knows when it last talked to the model', RU, async ($, on) => {

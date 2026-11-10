@@ -30,7 +30,7 @@ Keeps your Claude Code session's prompt cache warm while you are away, and shows
 
 The mod is one hooks module, `hooks/register.tsx`. Each hook, and what it does:
 
-- `session.start`: registers `/cache-warm` and reads the mod's settings back from local storage.
+- `session.start`: registers `/cache-warm` and reads the mod's settings back from local storage. If warming was on when the session's process stopped (the desktop app may stop an idle session to free memory and start it again on your next message), it switches warming back on and tells you about the pause: nothing can be warmed while a session is paused, so the cache may have gone cold meanwhile.
 - `command.run`, only for its own `/cache-warm` command: switches warming on and off, shows the status, changes the display, plays the demo. It does not see or change any other command.
 - `prompt.submit`: reads the message you send, before it goes to the model, to make the chef taste the soup, to detect your language (with the option on `auto`), and for the guard. Only when the guard holds a message back does it stop it, once, and put the same text back in your input box. Otherwise the message goes on unchanged.
 - `turn.start` and `turn.complete`: note when the session is busy and when it last talked to the model.
@@ -39,7 +39,7 @@ The mod is one hooks module, `hooks/register.tsx`. Each hook, and what it does:
 ## Privacy
 
 - No servers of its own, no analytics, no network requests: the warm-up goes through Claude Code itself, to the same model your session uses.
-- It keeps three small things in Claude Code's local plugin storage on your computer: when each recent session (up to 100) last talked to the model, which display you chose, and, with the `language` option on `auto`, the language code it detected. To detect the language it reads your messages in memory; it stores no text from your conversations.
+- It keeps a few small things in Claude Code's local plugin storage on your computer: when each recent session (up to 100) last talked to the model, the warming of each session where it is on (when it ends, how many warm-ups ran, the kitchen's guests), which display you chose, and, with the `language` option on `auto`, the language code it detected. To detect the language it reads your messages in memory; it stores no text from your conversations.
 - It reads your locale settings (`LANG`, `LC_ALL` and similar) to pick its language, and the session's context size for the guard.
 
 ## Settings

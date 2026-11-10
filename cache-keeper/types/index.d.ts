@@ -13,6 +13,8 @@ export type CacheWarm = {
   served?: number
   /** How many left unfed: each hour that passed with nobody fed, one leaves. */
   left?: number
+  /** How many times the session's process was stopped and started again while warming was on. */
+  pauses?: number
 }
 
 /** What a warm-up came to: tokens read, the cache rewritten, nothing to warm yet, or a failure. */
@@ -42,7 +44,7 @@ declare module 'claude-code' {
     'cache-keeper': {
       /** When the main thread last talked to the model (ms), or 0 if unknown. */
       lastActivity: number
-      /** Warming, or null while off. */
+      /** Warming, or null while off (kept per session in the store, so a restarted process keeps it). */
       warm: CacheWarm | null
       /** When the guard last held a message back (ms), or 0. */
       heldAt: number

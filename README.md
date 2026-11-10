@@ -79,7 +79,7 @@ The kitchen's title is each language's own word for something on the stove: *Coo
 
 Neither mod has servers of its own, analytics or network requests; cache-keeper's warm-ups go through Claude Code itself, to the model your session already uses. Both keep a few small values in Claude Code's local plugin storage on your computer and no text from your conversations:
 
-- **cache-keeper:** when each recent session last talked to the model, the display you chose, and the detected language code.
+- **cache-keeper:** when each recent session last talked to the model, the warming of each session where it is on, the display you chose, and the detected language code.
 - **answer-divider:** the line style you chose, and for recent answers how long the turn took next to a one-way fingerprint of the answer's end, plus the detected language code. Versions before 1.0.3 kept the start and end of recent answers there; 1.0.3 deletes them.
 
 Each mod's own README in its folder says exactly what it runs, reads and keeps.

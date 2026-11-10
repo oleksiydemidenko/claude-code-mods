@@ -22,6 +22,12 @@ const STORE_TIMES = 'times'
 const OLD_STORE_KEYS = ['answers', 'ends']
 const LANG_KEY = 'lang'
 const MAX_KEPT = 150
+/**
+ * Answer times kept in the store, shared by every session: a fingerprint and a
+ * number each (~40 bytes), so many can be kept and an old session's times are
+ * not pushed out by the sessions that ran after it.
+ */
+const MAX_TIMES = 3000
 const MAX_LENGTH = 8000
 const HEAD = 160
 
@@ -249,8 +255,6 @@ function styleFromArgs(args: string, current: LineStyle): LineStyle | undefined 
 /** The language the mod speaks; with the option on `auto`, learned from the answers. */
 let lang: Lang = 'en'
 let langOption = 'en'
-/** The answer times as stored, read at session start; module state starts over on a reload. */
-let storedTimes: StoredTime[] = []
 
 function S() {
   return STRINGS[lang]
@@ -316,9 +320,8 @@ export const register: Register = (on, options) => {
         const mark = fingerprint(end.tail)
         if (!marks.has(mark)) times.push({ mark, ms: end.ms })
       }
-      await $.store.set(STORE_TIMES, times.slice(-MAX_KEPT)).catch(() => undefined)
+      await $.store.set(STORE_TIMES, times.slice(-MAX_TIMES)).catch(() => undefined)
     }
-    storedTimes = times.slice(-MAX_KEPT)
     for (const key of OLD_STORE_KEYS) await $.store.delete(key).catch(() => undefined)
 
     // A resumed session: its answers from its own transcript, their times by fingerprint.
@@ -377,9 +380,16 @@ export const register: Register = (on, options) => {
         return rest.slice(-MAX_KEPT)
       })
 
+      // Read the store just before writing: sessions running side by side
+      // each add their own times, and a list held from start would drop theirs.
       const mark = fingerprint(end.tail)
-      storedTimes = [...storedTimes.filter(t => t.mark !== mark), { mark, ms: end.ms }].slice(-MAX_KEPT)
-      await $.store.set(STORE_TIMES, storedTimes).catch(() => undefined)
+      try {
+        const stored = asTimes(await $.store.get(STORE_TIMES))
+        const kept = [...stored.filter(t => t.mark !== mark), { mark, ms: end.ms }].slice(-MAX_TIMES)
+        await $.store.set(STORE_TIMES, kept)
+      } catch {
+        // The time is drawn in this process at least.
+      }
     }
     return next(e)
   })

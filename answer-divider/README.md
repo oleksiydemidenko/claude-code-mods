@@ -26,7 +26,7 @@ The mod is one hooks module, `hooks/register.tsx`. Each hook, and what it does:
 It keeps in Claude Code's local plugin storage on your computer:
 
 - the line style you chose;
-- for each of the last 150 answers, how long the turn took, next to a short one-way fingerprint of the answer's end (16 hex characters), so the time can be shown under the right answer again. No text from your conversations is stored;
+- for each of the last 3000 answers, across all sessions, how long the turn took, next to a short one-way fingerprint of the answer's end (16 hex characters), so the time can be shown under the right answer again. No text from your conversations is stored;
 - with the `language` option on `auto`, the detected language code.
 
 It reads your locale settings (`LANG`, `LC_ALL` and similar) to pick its language. Versions before 1.0.3 kept the start and end of recent answers in that storage; 1.0.3 deletes them the first time it starts.

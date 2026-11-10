@@ -22,6 +22,10 @@ import { kitchenSvg, labelSvg, LEAVE_MS, SERVE_MS, TASTE_MS } from './kitchen'
 // a message, the chef tastes the soup himself; each hour that passes with no
 // guest fed, the last in the queue leaves hungry. /cache-warm демо plays a quick
 // pretend shift. Every word it shows is in the person's language (strings.ts).
+// The desktop app may stop an idle session's process to free memory and start
+// it again on the next message: warming is kept per session in the store, so
+// it comes back on with the process, and the person is told the pause happened
+// (no process, no warm-ups while it lasts).
 
 const lastActivity = atom({ plugin: 'cache-keeper', key: 'lastActivity' } as const, 0)
 const warm = atom({ plugin: 'cache-keeper', key: 'warm' } as const, null as CacheWarm | null)
@@ -48,6 +52,8 @@ const GUARD_MIN_TOKENS = 30_000
 const HOLD_WINDOW = 10 * MIN
 const STORE_KEY = 'lastActivity'
 const DISPLAY_KEY = 'display'
+/** Store: session id → its warming, while on. */
+const WARM_KEY = 'warm'
 const STORE_MAX_SESSIONS = 100
 const MAX_GUESTS = 24
 const DEMO_GUESTS = 6
@@ -170,6 +176,69 @@ async function remember($: Dollar, at: number): Promise<void> {
   }
 }
 
+function isWarm(value: unknown): value is CacheWarm {
+  if (value === null || typeof value !== 'object') return false
+  const w = value as Record<string, unknown>
+  return typeof w.until === 'number' && typeof w.startedAt === 'number' && typeof w.count === 'number'
+}
+
+/** Writes this session's warming to the store (removing it when off), and drops ended ones. */
+async function saveWarm($: Dollar, w: CacheWarm | null): Promise<void> {
+  try {
+    const id = await $.session.id()
+    const now = await $.clock.now()
+    // Read just before writing: other sessions write their own entries too.
+    const stored = await $.store.get(WARM_KEY)
+    const map: Record<string, CacheWarm> = {}
+    if (stored !== null && typeof stored === 'object') {
+      for (const [key, value] of Object.entries(stored as Record<string, unknown>)) {
+        if (isWarm(value) && value.until > now) map[key] = value
+      }
+    }
+    if (w === null) delete map[id]
+    else map[id] = w
+    await $.store.set(WARM_KEY, map)
+  } catch {
+    // Kept for this process at least.
+  }
+}
+
+/** Changes warming in the session's state and in the store, together. */
+async function setWarm($: Dollar, change: (cur: CacheWarm | null) => CacheWarm | null): Promise<CacheWarm | null> {
+  const next = await update($, warm, change)
+  await saveWarm($, next)
+  return next
+}
+
+/**
+ * A process started again (the app had stopped it, or restarted): warming that
+ * was on comes back on, and the person learns about the pause; warming that
+ * ran out meanwhile ends with its usual note.
+ */
+async function restoreWarm($: Dollar): Promise<void> {
+  if ((await read($, warm)) !== null) return
+  let w: CacheWarm | undefined
+  try {
+    const id = await $.session.id()
+    const stored = (await $.store.get(WARM_KEY)) as Record<string, unknown> | undefined
+    const found = stored?.[id]
+    if (isWarm(found)) w = found
+  } catch {
+    return
+  }
+  if (w === undefined) return
+  const now = await $.clock.now()
+  if (now >= w.until) {
+    await saveWarm($, null)
+    $.ui.toast(S().toastEnded(duration(w.until - w.startedAt), warmTally(w)))
+    return
+  }
+  const back: CacheWarm = { ...w, pauses: (w.pauses ?? 0) + 1 }
+  await setWarm($, () => back)
+  const last = await read($, lastActivity)
+  $.ui.toast(S().resumed(last === 0 || now - last >= TTL))
+}
+
 async function showStatus($: Dollar): Promise<void> {
   const w = await read($, warm)
   if (w === null) {
@@ -185,7 +254,7 @@ async function showStatus($: Dollar): Promise<void> {
 }
 
 async function stopWarming($: Dollar, why: string): Promise<void> {
-  await update($, warm, () => null)
+  await setWarm($, () => null)
   await restage($)
   $.ui.status(undefined)
   $.ui.toast(why)
@@ -244,7 +313,7 @@ async function tick($: Dollar): Promise<void> {
       note = { kind: 'failed', reason: String(r.reason) }
       retryAt = at + RETRY_AFTER
     }
-    await update($, warm, cur => (cur === null ? null : { ...cur, count: cur.count + 1, last: note }))
+    await setWarm($, cur => (cur === null ? null : { ...cur, count: cur.count + 1, last: note }))
   } finally {
     isWarming = false
   }
@@ -310,7 +379,7 @@ async function finishRun($: Dollar, id: number): Promise<void> {
     if ((await read($, demo)) !== null) {
       await update($, demo, d => (d === null ? null : { ...d, served: Math.min(d.guests, d.served + 1) }))
     } else {
-      await update($, warm, w =>
+      await setWarm($, w =>
         w === null ? null : { ...w, served: Math.min(w.guests ?? MAX_GUESTS, (w.served ?? 0) + 1) },
       )
     }
@@ -319,7 +388,7 @@ async function finishRun($: Dollar, id: number): Promise<void> {
     if ((await read($, demo)) !== null) {
       await update($, demo, d => (d === null ? null : { ...d, left: (d.left ?? 0) + 1 }))
     } else {
-      await update($, warm, w => (w === null ? null : { ...w, left: (w.left ?? 0) + 1 }))
+      await setWarm($, w => (w === null ? null : { ...w, left: (w.left ?? 0) + 1 }))
     }
   }
   await update($, run, () => null)
@@ -401,6 +470,7 @@ async function describe($: Dollar): Promise<string> {
   if (w !== null) {
     lines.push(t.warmUps(w.count, noteText(w.last)))
     lines.push(t.guests(warmTally(w)))
+    if ((w.pauses ?? 0) > 0) lines.push(t.pauses(w.pauses ?? 0))
   }
   lines.push(t.indicator(t.displayNames[await read($, display)]))
   lines.push(t.commands)
@@ -449,6 +519,9 @@ export const register: Register = (on, options) => {
         // Nothing stored: the time stays unknown and the guard stays quiet.
       }
     }
+
+    // A process started again while warming was on: warming comes back.
+    await restoreWarm($)
 
     // Where the indicator shows: the person's choice, kept across sessions.
     try {
@@ -564,7 +637,7 @@ export const register: Register = (on, options) => {
 
     if (['off', 'stop', 'выкл', 'стоп', 'выключить', 'вимкнути'].includes(first)) {
       const was = await read($, warm)
-      await update($, warm, () => null)
+      await setWarm($, () => null)
       await restage($)
       $.ui.status(undefined)
       return { text: was === null ? S().alreadyOff : S().turnedOff }
@@ -580,7 +653,7 @@ export const register: Register = (on, options) => {
     }
 
     const now = await $.clock.now()
-    await update($, warm, cur => ({
+    await setWarm($, cur => ({
       until: now + hours * HOUR,
       startedAt: now,
       count: cur?.count ?? 0,
