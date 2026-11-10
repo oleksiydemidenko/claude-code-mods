@@ -13,7 +13,7 @@ export type CacheWarm = {
   served?: number
   /** How many left unfed: each hour that passed with nobody fed, one leaves. */
   left?: number
-  /** How many times the session's process was stopped and started again while warming was on. */
+  /** How many times the session's process stopped and started again while warming was on (whatever the cause). */
   pauses?: number
 }
 

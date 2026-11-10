@@ -24,7 +24,7 @@ import { kitchenSvg, labelSvg, LEAVE_MS, SERVE_MS, TASTE_MS } from './kitchen'
 // pretend shift. Every word it shows is in the person's language (strings.ts).
 // The desktop app may stop an idle session's process to free memory and start
 // it again on the next message: warming is kept per session in the store, so
-// it comes back on with the process, and the person is told the pause happened
+// it comes back on with the process, and the person is told the process restarted
 // (no process, no warm-ups while it lasts).
 
 const lastActivity = atom({ plugin: 'cache-keeper', key: 'lastActivity' } as const, 0)
@@ -212,7 +212,7 @@ async function setWarm($: Dollar, change: (cur: CacheWarm | null) => CacheWarm |
 
 /**
  * A process started again (the app had stopped it, or restarted): warming that
- * was on comes back on, and the person learns about the pause; warming that
+ * was on comes back on, and the person learns of the restart; warming that
  * ran out meanwhile ends with its usual note.
  */
 async function restoreWarm($: Dollar): Promise<void> {

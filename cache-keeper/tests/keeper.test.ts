@@ -170,7 +170,7 @@ test('/cache-warm on is kept in the store for the session, and off removes it', 
   expect(after['session-1']).toBeUndefined()
 })
 
-test('warming comes back on when the app starts a paused session again', RU, async ($, on) => {
+test('warming comes back on when the process of the session starts again', RU, async ($, on) => {
   const clock = mock.clock(on, { now: START + 20 * MIN })
   mock.store(on, { lastActivity: { 'session-1': START }, warm: { 'session-1': WARM_3H } })
   const calls = engine(on, 120_000)
@@ -180,14 +180,14 @@ test('warming comes back on when the app starts a paused session again', RU, asy
   expect(calls.toasts.join('\n')).toContain('кэш ещё тёплый')
   const status = await $.command.run({ command: 'cache-warm', args: '' })
   expect(status.text).toContain('Прогрев кэша включён')
-  expect(status.text).toContain('Пауз от приложения: 1')
+  expect(status.text).toContain('Перезапусков процесса: 1')
 
   // Quiet for 50 minutes since the last request: the warm-up runs again.
   await clock.advance(31 * MIN)
   expect(calls.forks).toBe(1)
 })
 
-test('after a long pause the person is told the cache went cold', RU, async ($, on) => {
+test('after a long stop the person is told the cache went cold', RU, async ($, on) => {
   mock.clock(on, { now: START + 90 * MIN })
   mock.store(on, { lastActivity: { 'session-1': START }, warm: { 'session-1': WARM_3H } })
   const calls = engine(on, 120_000)
@@ -195,7 +195,7 @@ test('after a long pause the person is told the cache went cold', RU, async ($, 
   expect(calls.toasts.join('\n')).toContain('кэш остыл')
 })
 
-test('warming that ran out during a pause ends with its note', RU, async ($, on) => {
+test('warming that ran out while the process was stopped ends with its note', RU, async ($, on) => {
   mock.clock(on, { now: START + 5 * 60 * MIN })
   const store = memoryStore(on, { lastActivity: { 'session-1': START }, warm: { 'session-1': WARM_3H } })
   const calls = engine(on, 120_000)

@@ -30,7 +30,7 @@ Keeps your Claude Code session's prompt cache warm while you are away, and shows
 
 The mod is one hooks module, `hooks/register.tsx`. Each hook, and what it does:
 
-- `session.start`: registers `/cache-warm` and reads the mod's settings back from local storage. If warming was on when the session's process stopped (the desktop app may stop an idle session to free memory and start it again on your next message), it switches warming back on and tells you about the pause: nothing can be warmed while a session is paused, so the cache may have gone cold meanwhile.
+- `session.start`: registers `/cache-warm` and reads the mod's settings back from local storage. If warming was on when the session's process stopped (the desktop app may stop an idle session to free memory and start it again on your next message, or the app or the computer restarted), it switches warming back on and tells you the process restarted: nothing can be warmed while there is no process, so the cache may have gone cold meanwhile.
 - `command.run`, only for its own `/cache-warm` command: switches warming on and off, shows the status, changes the display, plays the demo. It does not see or change any other command.
 - `prompt.submit`: reads the message you send, before it goes to the model, to make the chef taste the soup, to detect your language (with the option on `auto`), and for the guard. Only when the guard holds a message back does it stop it, once, and put the same text back in your input box. Otherwise the message goes on unchanged.
 - `turn.start` and `turn.complete`: note when the session is busy and when it last talked to the model.
